@@ -1,4 +1,11 @@
-# article data
+---
+title: "microrefugia review"
+format: revealjs
+editor: visual
+---
+
+
+```{r}
 library(tidyverse)
 
 d <- 
@@ -8,17 +15,80 @@ d <-
   janitor::clean_names() |>
   slice(2:999) |>
   dplyr::select(-2)
+```
 
-glimpse(d)
+## screening
 
+```{r}
+screening <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', skip = 1) |>
+  janitor::clean_names()
+
+# included versus not
+paste('included versus not:')
+screening$included |> table()
+```
+
+
+
+## reasons for exclusion
+
+```{r}
+screening |>
+  dplyr::filter(included == "No") |>
+  dplyr::select(value = reason_for_exclusion) |>
+  dplyr::mutate(value = str_replace_all(value, '\\(e.g. disturbance, nitrogen\\)', '') |>
+                  str_replace_all("\\'", "") |>
+                  str_replace_all('-- were only loking at climate, temperature, moisture, microclimate', '') |>
+                  str_replace_all('\\(were not covering palaeo, pleistocene divergence\\)', '')) |> 
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Reason for Exclusion")
+```
+
+## included by year
+
+```{r}
+screening |>
+  dplyr::filter(!is.na(reader)) |>
+  tidyr::replace_na(list(included = 'Left Blank')) |>
+  dplyr::group_by(included, year) |>
+  dplyr::summarise(n = n()) |>
+  dplyr::ungroup() |> 
+  rbind(expand_grid(included = c('No', "Yes", 'Left Blank'), year = 2005:2026, n=0)) |> 
+  group_by(included, year) |>
+  summarise(n=sum(n)) |>
+  ggplot(aes(x=year, y=n, fill = included)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  scale_fill_brewer(palette = 'Set2')
+
+```
+
+## Many locations, mostly defined
+
+```{r}
 # locations - could be a map (requires one person to get lat/longs for all 200+ studies)
-d$study_location |> unique()
+d$study_location |> unique() |> length() |> paste('locations')
 
 # yes or no questions
-
+paste('is the refugia defined:')
 d$is_the_specified_refugia_defined |> table()
 
-# habitats
+```
+
+## habitats
+
+
+```{r}
 d |>
   dplyr::select(habitat) |>
   tidyr::separate(habitat, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -33,8 +103,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value, n))) +
   geom_bar(stat = 'identity') +
   ggtitle("Habitat")
+```
 
-# species groups
+## species groups
+
+```{r}
 d |>
   dplyr::select(species_group) |>
   tidyr::separate(species_group, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -47,8 +120,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Species Group")
+```
 
-# framework 
+## framework 
+
+```{r}
 d |>
   dplyr::select(framework) |>
   tidyr::separate(framework, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -61,8 +137,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Framework (Some Studies cover multiple categories)")
+```
 
-# refugia term
+## refugia term
+
+```{r}
 d |>
   dplyr::select(refugia_term) |>
   tidyr::separate(refugia_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -76,11 +155,19 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Refugia Term (Some Studies cover multiple categories)")
+```
 
-# reference for definition - this needs to be cleaned up (i.e. standardized) to make it easier to summarize
+## reference for definition
+
+This needs to be cleaned up (i.e. standardized) to make it easier to summarize
+
+```{r}
 d$refugia_defintion_reference |> table() |> sort()
+```
 
-# position in relation to main range
+## position in relation to main range
+
+```{r}
 d |> 
   group_by(y= position_in_relation_to_main_range) |>
   summarise(n = n()) |>
@@ -90,8 +177,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(y,n))) +
   geom_bar(stat = 'identity') +
   ggtitle('Position in relation to main range')
+```
 
-# sampling structure
+## sampling structure
+
+```{r}
 d |>
   dplyr::select(sampling_structure) |>
   tidyr::separate(sampling_structure, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -106,8 +196,12 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Sampling Structure (Some Studies cover multiple categories)")
+```
 
-# climate driver
+
+## climate driver
+
+```{r}
 d |>
   dplyr::select(value = what_kind_of_climate_driver_does_the_study_want_to_capture_ie_which_aspect_is_the_refugia_buffering) |>
   mutate(value = str_to_lower(value),
@@ -124,8 +218,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Climate Driver (Some Studies cover multiple categories)")
+```
 
-# exposure_considered
+## exposure_considered
+
+```{r}
 d |>
   dplyr::select(value = exposure_considered)  |> 
   tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
@@ -138,8 +235,13 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Exposure Considered (Some Studies cover multiple categories)")
+```
 
-# species_sensitivity_ie_what_is_the_vulnerable_part_of_the_species
+## species_sensitivity
+
+ie_what_is_the_vulnerable_part_of_the_species
+
+```{r}
 
 d |>
   dplyr::select(value = species_sensitivity_ie_what_is_the_vulnerable_part_of_the_species)  |> 
@@ -156,7 +258,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Species Sensitivity (Some Studies cover multiple categories)")
+```
 
+## Species sensitivity used to ID refugia
+
+```{r}
 
 d |>
   dplyr::select(value = is_species_sensitivity_used_to_identify_refugia) |> 
@@ -173,7 +279,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("is Species Sensitivity used to identigy refugia")
+```
 
+## Species adaptablity
+
+```{r}
 # d$species_adaptability_genetic_adaptability_and_dispersal |> table()
 d |>
   dplyr::select(value = species_adaptability_genetic_adaptability_and_dispersal) |> 
@@ -190,8 +300,12 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("species_adaptability_genetic_adaptability_and_dispersal")
+```
 
-# d$refugia_structure_extrinsic_adaptability_factors |> table()
+## refugia_structure
+
+```{r}
+# d$ |> table()
 d |>
   dplyr::select(value = refugia_structure_extrinsic_adaptability_factors) |> 
   mutate(value = str_to_lower(value),
@@ -207,7 +321,11 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("refugia_structure_extrinsic_adaptability_factors")
+```
 
+## species response to changing climate
+
+```{r}
 # d$species_response_to_changing_climate |> table()
 d |>
   dplyr::select(value = species_response_to_changing_climate) |>
@@ -224,3 +342,184 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("species_response_to_changing_climate")
+
+
+```
+
+
+## plot size
+
+```{r}
+d |>
+  dplyr::select(value = in_situ_plot_size) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("In situ plot size")
+```
+
+
+## spatial resolution
+
+```{r}
+d |>
+  dplyr::select(value = spatial_resolution_modelling_rs) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("spatial_resolution_modelling_rs")
+
+```
+
+## spatial extent
+
+
+```{r}
+d |>
+  dplyr::select(value = spatial_extent) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("spatial extent")
+
+```
+
+## temporal aspects
+
+```{r}
+d |>
+  dplyr::select(value = temporal_aspects) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Temporal aspects")
+
+```
+
+## climate variables
+
+```{r}
+d |>
+  dplyr::select(value = climate_variables) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Climate variables")
+```
+
+
+## 
+
+
+```{r}
+d |>
+  dplyr::select(value = climate_data_source) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Climate data source")
+```
+
+##
+
+```{r}
+d |>
+  dplyr::select(value = climate_data_resolution) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("climate_data_resolution")
+```
+
+##
+
+```{r}
+d |>
+  dplyr::select(value = other_habitat_variables) |>
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("other habitat variables")
+```
+
+## specific quantification
+
+
+
+```{r}
+paste(
+d$specific_quantification |> is.na() |> sum(), 'descriptions entered')
+
+```
