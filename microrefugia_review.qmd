@@ -1,6 +1,6 @@
 ---
 title: "microrefugia review"
-format: revealjs
+format: pptx
 editor: visual
 ---
 
@@ -24,8 +24,12 @@ screening <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', skip = 1
   janitor::clean_names()
 
 # included versus not
-paste('included versus not:')
-screening$included |> table()
+screening$included |> 
+  as_tibble() |>
+  na.omit() |>
+  ggplot(aes(y=value)) +
+  geom_bar(stat = 'count') +
+  ggtitle("Screening: number of studies included")
 ```
 
 
@@ -69,7 +73,8 @@ screening |>
   summarise(n=sum(n)) |>
   ggplot(aes(x=year, y=n, fill = included)) +
   geom_bar(stat = 'identity', position = 'dodge') +
-  scale_fill_brewer(palette = 'Set2')
+  scale_fill_brewer(palette = 'Set2') +
+  ggtitle('Screening: recent studies a little more likely to meet our criteria')
 
 ```
 
@@ -80,8 +85,12 @@ screening |>
 d$study_location |> unique() |> length() |> paste('locations')
 
 # yes or no questions
-paste('is the refugia defined:')
-d$is_the_specified_refugia_defined |> table()
+d$is_the_specified_refugia_defined |> 
+  as_tibble() |>
+  na.omit() |>
+  ggplot(aes(y=value)) +
+  geom_bar(stat = 'count') +
+  ggtitle("Is the refugia defined")
 
 ```
 
@@ -125,7 +134,7 @@ d |>
 ## framework 
 
 ```{r}
-d |>
+fmk <- d |>
   dplyr::select(framework) |>
   tidyr::separate(framework, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
@@ -133,7 +142,9 @@ d |>
   group_by(value) |>
   summarise(n = n()) |>
   ungroup() |>
-  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) 
+
+fmk |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("Framework (Some Studies cover multiple categories)")
@@ -147,22 +158,45 @@ d |>
   tidyr::separate(refugia_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit()|>
-  mutate(value = str_to_lower(value)) |>
+  mutate(value = str_to_lower(value) |> str_replace_all('climate change', 'climate') |>
+           str_replace_all('refuge', 'refugia')) |>
   group_by(value) |>
   summarise(n = n()) |>
   ungroup() |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
-  ggtitle("Refugia Term (Some Studies cover multiple categories)")
+  ggtitle("Refugia Term")
 ```
 
 ## reference for definition
 
-This needs to be cleaned up (i.e. standardized) to make it easier to summarize
 
 ```{r}
-d$refugia_defintion_reference |> table() |> sort()
+d$refugia_defintion_reference |>
+  as_tibble() |>
+  dplyr::filter(value != 'NA') |>
+  dplyr::mutate(value = str_remove_all(value, '\\)') |>
+                  str_remove_all('\\(') |>
+                  str_remove_all('\\,') |>
+                  str_remove_all('\\.') |>
+                  str_remove_all('et al')) |>
+  tidyr::separate_wider_delim(cols = value, delim = ';', names = letters, too_few = 'align_start') |>
+  tidyr::pivot_longer(cols = letters) |>
+  na.omit() |>
+  dplyr::select(-name) |>
+  pull(value) |>
+  trimws() |>
+  as_tibble() |>
+  dplyr::mutate(value = str_replace_all(value, '  ', ' ')) |>
+  dplyr::group_by(value) |>
+  mutate(n=n()) |>
+  ungroup() |>
+  dplyr::filter(n>2) |>
+  ggplot(aes(y=fct_reorder(value, n))) +
+  geom_bar(stat = 'count') +
+  ggtitle('most common references')
+  
 ```
 
 ## position in relation to main range
@@ -225,16 +259,18 @@ d |>
 ```{r}
 d |>
   dplyr::select(value = exposure_considered)  |> 
-  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  dplyr::mutate(value = str_replace_all(value, "buffering, amplification, decoupling", 'buffering amplification decoupling') |> trimws()) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\,') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit()|>
+  dplyr::mutate(value = trimws(value)) |>
   group_by(value) |>
   summarise(n = n()) |>
-  ungroup() |>
+  ungroup() |> 
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
-  geom_bar(stat= 'identity') +
-  ggtitle("Exposure Considered (Some Studies cover multiple categories)")
+  geom_bar(stat= 'sum') +
+  ggtitle("Exposure Considered")
 ```
 
 ## species_sensitivity
@@ -394,20 +430,22 @@ d |>
 
 ```{r}
 d |>
-  dplyr::select(value = spatial_extent) |>
+  dplyr::select(value = spatial_extent, article_id_1, climate_data_source) |>
   mutate(value = str_to_lower(value),
+         cds = ifelse(str_detect(climate_data_source, 'microclimate'), 'microclimate', 'macro_or_other'), 
          value = ifelse(value == 'na', 'entered as NA', value)) |>
   tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
   tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit()|>
-  group_by(value) |>
+  group_by(value, cds) |>
   summarise(n = n()) |>
   ungroup() |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
-  ggplot(aes(x=n, y=fct_reorder(value,n))) +
-  geom_bar(stat= 'identity') +
-  ggtitle("spatial extent")
+  ggplot(aes(x=n, y=fct_reorder(value,n), fill = cds)) +
+  geom_bar(stat= 'sum', color = 'black') +
+  ggtitle("spatial extent") +
+  scale_fill_brewer(palette = 'Set1', name = 'Climate\nData\nSource')
 
 ```
 
@@ -470,7 +508,7 @@ d |>
   ungroup() |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
-  geom_bar(stat= 'identity') +
+  geom_bar(stat= 'sum') +
   ggtitle("Climate data source")
 ```
 
@@ -516,6 +554,25 @@ d |>
 
 ## specific quantification
 
+```{r}
+d |>
+  dplyr::select(value = how_is_the_microrefugia_potential_specifically_defined_or_delineated_in_the_papers_methods_or_results, article_id_1, climate_data_source) |>
+  mutate(value = str_to_lower(value),
+         cds = ifelse(str_detect(climate_data_source, 'microclimate'), 'Microclimate', "macro_or_other"),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  group_by(value, cds) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n), fill = cds)) +
+  geom_bar(stat= 'sum', color = 'black') +
+  scale_fill_brewer(palette = 'Set1', name = 'Climate\nData\nSource') +
+  ggtitle("How is MCR potential defined")
+```
 
 
 ```{r}
