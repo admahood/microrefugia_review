@@ -60,7 +60,7 @@ d |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
-  ggtitle("Framework (Some Studies cover multiple categories)")
+  ggtitle("Framework")
 
 # refugia term
 d |>

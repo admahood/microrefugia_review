@@ -4,7 +4,6 @@ format: pptx
 editor: visual
 ---
 
-
 ```{r}
 library(tidyverse)
 
@@ -16,6 +15,17 @@ d <-
   slice(2:999) |>
   dplyr::select(-2)
 ```
+
+## Outline
+
+1.  **General context**
+2.  Definition
+3.  Aspects of vulnerability
+    a.  Sensitivity
+    b.  Exposure
+    c.  Adaptive capacity
+4.  How are microrefugia acutally quantified?
+
 
 ## screening
 
@@ -31,8 +41,6 @@ screening$included |>
   geom_bar(stat = 'count') +
   ggtitle("Screening: number of studies included")
 ```
-
-
 
 ## reasons for exclusion
 
@@ -78,11 +86,21 @@ screening |>
 
 ```
 
-## Many locations, mostly defined
+## locations
+
+Could be a map figure for the paper if we get coordinates 
 
 ```{r}
 # locations - could be a map (requires one person to get lat/longs for all 200+ studies)
 d$study_location |> unique() |> length() |> paste('locations')
+```
+
+
+## Refugia mostly defined
+
+```{r}
+# locations - could be a map (requires one person to get lat/longs for all 200+ studies)
+# d$study_location |> unique() |> length() |> paste('locations')
 
 # yes or no questions
 d$is_the_specified_refugia_defined |> 
@@ -95,7 +113,6 @@ d$is_the_specified_refugia_defined |>
 ```
 
 ## habitats
-
 
 ```{r}
 d |>
@@ -131,7 +148,7 @@ d |>
   ggtitle("Species Group")
 ```
 
-## framework 
+## framework
 
 ```{r}
 fmk <- d |>
@@ -149,6 +166,17 @@ fmk |>
   geom_bar(stat= 'identity') +
   ggtitle("Framework (Some Studies cover multiple categories)")
 ```
+
+
+## Outline
+
+1.  General context
+2.  **Definition**
+    a.  How are microrefugia defined: Temporally
+        I.  Short-term vs millennial stability vs not at all defined?
+    b.  How are microrefugia defined: Spatially
+        I.  Size or structure defined?
+        II.  Minimum size for viable populations Microrefugia networks - metapopulation dynamics
 
 ## refugia term
 
@@ -170,7 +198,6 @@ d |>
 ```
 
 ## reference for definition
-
 
 ```{r}
 d$refugia_defintion_reference |>
@@ -229,9 +256,17 @@ d |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
-  ggtitle("Sampling Structure (Some Studies cover multiple categories)")
+  ggtitle("Sampling Structure")
 ```
 
+## Outline
+
+1.  General context
+2.  Definition
+3.  **Aspects of vulnerability**
+    a.  Exposure
+    b.  Sensitivity
+    c.  Adaptive capacity
 
 ## climate driver
 
@@ -253,6 +288,8 @@ d |>
   geom_bar(stat= 'identity') +
   ggtitle("Climate Driver (Some Studies cover multiple categories)")
 ```
+
+
 
 ## exposure_considered
 
@@ -382,7 +419,6 @@ d |>
 
 ```
 
-
 ## plot size
 
 ```{r}
@@ -402,7 +438,6 @@ d |>
   geom_bar(stat= 'identity') +
   ggtitle("In situ plot size")
 ```
-
 
 ## spatial resolution
 
@@ -426,7 +461,6 @@ d |>
 ```
 
 ## spatial extent
-
 
 ```{r}
 d |>
@@ -490,9 +524,7 @@ d |>
   ggtitle("Climate variables")
 ```
 
-
-## 
-
+## climate data source
 
 ```{r}
 d |>
@@ -512,7 +544,7 @@ d |>
   ggtitle("Climate data source")
 ```
 
-##
+## climate data resolution
 
 ```{r}
 d |>
@@ -532,7 +564,7 @@ d |>
   ggtitle("climate_data_resolution")
 ```
 
-##
+## Other habitat variables
 
 ```{r}
 d |>
@@ -573,7 +605,6 @@ d |>
   scale_fill_brewer(palette = 'Set1', name = 'Climate\nData\nSource') +
   ggtitle("How is MCR potential defined")
 ```
-
 
 ```{r}
 paste(
