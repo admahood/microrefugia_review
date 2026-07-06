@@ -108,7 +108,7 @@ df <- term |>
            time_indef, climate_indef, biological_indef) |>
   dplyr::summarise(n=n()) |>
   ungroup() |>
-  dplyr::filter(term != 'not_applicable') |>
+  dplyr::filter(term != 'not_applicable', framework != 'Experimental') |>
   mutate(space_indef = str_replace_all(space_indef, 'unclear', 'no') |>
            forcats::fct_relevel('yes', 'no', 'undefined'),
          time_indef = forcats::fct_relevel(time_indef, 'yes', 'no', 'undefined'),
@@ -116,8 +116,9 @@ df <- term |>
          biological_indef = forcats::fct_relevel(biological_indef, 'yes', 'no', 'undefined'),
          term = str_replace_all(term, '_', ' ') |> 
            str_remove_all(' ') |>
-           str_remove_all('refugia')#,
-         #framework = str_replace_all(framework, ' ', '\n')
+           str_remove_all('refugia'),
+         framework = str_replace_all(framework, ' ', '\n') |>
+           str_remove_all('Conceptual\n\\|\n')
          ) |>
   na.omit()
   
@@ -129,10 +130,11 @@ ggplot(aes(y=n,
            axis3 = time_indef, 
            axis4 = climate_indef, 
            axis5 = biological_indef,
-           axis6 = climate_driver)) +
-  geom_alluvium(aes(fill = framework)) +
+           axis6 = framework,
+           axis7 = climate_driver)) +
+  geom_alluvium(aes(fill = term)) +
   geom_stratum() +
-  scale_x_discrete(limits = c('Concept',
+  scale_x_discrete(limits = c('Term',
                               "Space",
                               "Time",
                               "Climate",
@@ -140,6 +142,7 @@ ggplot(aes(y=n,
                               'Climate\nDriver'),
                    expand = c(.2, .05)) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_fill_brewer(palette = 'Dark2') +
   theme_minimal() +
   ggtitle("Definitions and key concepts") +
   theme(legend.position = 'bottom')
