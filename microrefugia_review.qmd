@@ -14,6 +14,11 @@ d <-
   janitor::clean_names() |>
   slice(2:999) |>
   dplyr::select(-2)
+
+thm <- ggplot2::set_theme(theme_bw())
+
+update_theme(axis.text = element_text(size=10))
+
 ```
 
 ## Outline
@@ -27,7 +32,7 @@ d <-
 4.  How are microrefugia acutally quantified?
 
 
-## screening
+## Screening
 
 ```{r}
 screening <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', skip = 1) |>
@@ -42,7 +47,8 @@ screening$included |>
   ggtitle("Screening: number of studies included")
 ```
 
-## reasons for exclusion
+
+##
 
 ```{r}
 screening |>
@@ -67,6 +73,19 @@ screening |>
   ggtitle("Reason for Exclusion")
 ```
 
+## Mentioned but not investigated ~50 per term
+
+1. Used as a buzzword?
+2. People are doing research on something related, and are happening upon the microrefugia literature while they're writing the paper, and having an a-ha moment after the fact
+
+## Other 150 rejections
+
+1. not contemporary (75)
+2. not terrestrial
+3. short-term refuge
+
+
+
 ## included by year
 
 ```{r}
@@ -86,31 +105,42 @@ screening |>
 
 ```
 
+## mbni by year
+
+```{r}
+screening |>
+  dplyr::filter(included == "No") |>
+  dplyr::select(value = reason_for_exclusion, year) |>
+  dplyr::mutate(value = str_replace_all(value, '\\(e.g. disturbance, nitrogen\\)', '') |>
+                  str_replace_all("\\'", "") |>
+                  str_replace_all('-- were only loking at climate, temperature, moisture, microclimate', '') |>
+                  str_replace_all('\\(were not covering palaeo, pleistocene divergence\\)', '')) |> 
+  mutate(value = str_to_lower(value),
+         value = ifelse(value == 'na', 'entered as NA', value)) |>
+  tidyr::replace_na(list(value = "NA (because it was left blank)")) |>
+  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+    dplyr::filter(str_detect(value, 'but not')) |>
+  group_by(year) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  ggplot(aes(x=year, y=n)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  ggtitle('Mentioned but not investigated by year')
+```
+
 ## locations
 
 Could be a map figure for the paper if we get coordinates 
 
+Requires someone to spend a few hours getting coordinates for all studies
+
 ```{r}
-# locations - could be a map (requires one person to get lat/longs for all 200+ studies)
+# locations - could be a map (requires one person to get lat/longs for all 300+ studies)
 d$study_location |> unique() |> length() |> paste('locations')
 ```
 
-
-## Refugia mostly defined
-
-```{r}
-# locations - could be a map (requires one person to get lat/longs for all 200+ studies)
-# d$study_location |> unique() |> length() |> paste('locations')
-
-# yes or no questions
-d$is_the_specified_refugia_defined |> 
-  as_tibble() |>
-  na.omit() |>
-  ggplot(aes(y=value)) +
-  geom_bar(stat = 'count') +
-  ggtitle("Is the refugia defined")
-
-```
 
 ## habitats
 
@@ -178,6 +208,33 @@ fmk |>
         I.  Size or structure defined?
         II.  Minimum size for viable populations Microrefugia networks - metapopulation dynamics
 
+
+##
+
+![](out/alluvial_definition.png)
+
+## Refugia mostly defined
+
+```{r}
+# locations - could be a map (requires one person to get lat/longs for all 200+ studies)
+# d$study_location |> unique() |> length() |> paste('locations')
+
+# yes or no questions
+d$is_the_specified_refugia_defined |> 
+  as_tibble() |>
+  na.omit() |>
+  ggplot(aes(y=value)) +
+  geom_bar(stat = 'count') +
+  ggtitle("Is the refugia defined")
+
+```
+
+
+## Definition
+
+![Word Cloud!!](out/wordcloud_clipped.png)
+
+
 ## refugia term
 
 ```{r}
@@ -185,9 +242,18 @@ d |>
   dplyr::select(refugia_term) |>
   tidyr::separate(refugia_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
-  na.omit()|>
-  mutate(value = str_to_lower(value) |> str_replace_all('climate change', 'climate') |>
-           str_replace_all('refuge', 'refugia')) |>
+  na.omit() |>
+  dplyr::mutate(value = case_when(
+    value == 'microrefugia' ~ 'micro\n(climate)\nrefugia',
+    value == 'climate refugia' ~ 'climate\n(change)\nrefugia',
+    value == 'climate change refugia' ~ 'climate\n(change)\nrefugia',
+    value == 'microclimate refugia' ~ 'micro\n(climate)\nrefugia',
+    value == 'microclimatic refugia' ~ 'micro\n(climate)\nrefugia',
+    value == 'thermal refugia' ~ 'thermal refugia',
+    value == 'thermal refuge' ~ 'thermal refugia',
+    value == 'thermal microrefugia' ~ 'thermal refugia',
+    TRUE ~ 'Other'
+  )) |>
   group_by(value) |>
   summarise(n = n()) |>
   ungroup() |>
@@ -222,9 +288,21 @@ d$refugia_defintion_reference |>
   dplyr::filter(n>2) |>
   ggplot(aes(y=fct_reorder(value, n))) +
   geom_bar(stat = 'count') +
-  ggtitle('most common references')
+  ggtitle('most common references (n>2)')
   
 ```
+
+## Outline
+
+1.  General context
+2.  Definition
+3.  **Aspects of vulnerability**
+    a.  Exposure
+    b.  Sensitivity
+    c.  Adaptive capacity
+
+
+
 
 ## position in relation to main range
 
@@ -240,33 +318,8 @@ d |>
   ggtitle('Position in relation to main range')
 ```
 
-## sampling structure
 
-```{r}
-d |>
-  dplyr::select(sampling_structure) |>
-  tidyr::separate(sampling_structure, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
-  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
-  na.omit()|>
-  # mutate(value = str_to_lower(value),
-  #        value = ifelse(value == 'na', 'entered as NA', value)) |>
-  group_by(value) |>
-  summarise(n = n()) |>
-  ungroup() |>
-  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
-  ggplot(aes(x=n, y=fct_reorder(value,n))) +
-  geom_bar(stat= 'identity') +
-  ggtitle("Sampling Structure")
-```
 
-## Outline
-
-1.  General context
-2.  Definition
-3.  **Aspects of vulnerability**
-    a.  Exposure
-    b.  Sensitivity
-    c.  Adaptive capacity
 
 ## climate driver
 
@@ -300,7 +353,7 @@ d |>
   tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\,') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit()|>
-  dplyr::mutate(value = trimws(value)) |>
+  dplyr::mutate(value = trimws(value))|>
   group_by(value) |>
   summarise(n = n()) |>
   ungroup() |> 
@@ -417,6 +470,36 @@ d |>
   ggtitle("species_response_to_changing_climate")
 
 
+```
+
+
+## Outline
+
+1.  General context
+2.  Definition
+3.  Aspects of vulnerability
+    a.  Sensitivity
+    b.  Exposure
+    c.  Adaptive capacity
+4.  **How are microrefugia acutally quantified?**
+
+## sampling structure
+
+```{r}
+d |>
+  dplyr::select(sampling_structure) |>
+  tidyr::separate(sampling_structure, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  # mutate(value = str_to_lower(value),
+  #        value = ifelse(value == 'na', 'entered as NA', value)) |>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Sampling Structure")
 ```
 
 ## plot size
