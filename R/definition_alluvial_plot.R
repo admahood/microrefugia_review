@@ -63,7 +63,7 @@ is_defined <- d |>
 #     refugia_term == 'thermal microrefugia' ~ 'thermal refugia',
 #     TRUE ~ 'Other'
 #   ))
-  
+
 climate_driver <- d |>
   dplyr::select(value = what_kind_of_climate_driver_does_the_study_want_to_capture_ie_which_aspect_is_the_refugia_buffering,
                 article_id_1) |>
@@ -97,14 +97,28 @@ climate_driver <- d |>
 #                                         "don't know", 'NA'),
 #                              "irrelevant\ndon't know\nNA", ssu))
 
+
+n_concepts <- space |>
+  bind_cols(time |> dplyr::select(time_indef)) |>
+  bind_cols(climate|> dplyr::select(climate_indef)) |>
+  bind_cols(biological |> dplyr::select(biological_indef)) |>
+  dplyr::mutate(time_indef = ifelse(time_indef == 'yes', 1,0),
+                space_indef = ifelse(space_indef == 'yes',1,0),
+                climate_indef = ifelse(climate_indef == 'yes',1,0),
+                biological_indef = ifelse(biological_indef == 'yes',1,0)) |>
+  dplyr::mutate(n_concepts = time_indef + space_indef + climate_indef +biological_indef) |>
+  dplyr::select(article_id_1, n_concepts)
+
+
 df <- term |>
   left_join(climate_driver) |>
+  left_join(n_concepts) |>
   left_join(space) |>
   left_join(time) |>
   left_join(climate) |>
   left_join(biological) |>
   left_join(framework) |>
-  group_by(climate_driver, term, space_indef, framework,
+  group_by(climate_driver, term, space_indef, framework, n_concepts,
            time_indef, climate_indef, biological_indef) |>
   dplyr::summarise(n=n()) |>
   ungroup() |>
@@ -119,34 +133,27 @@ df <- term |>
            str_remove_all('refugia'),
          framework = str_replace_all(framework, ' ', '\n') |>
            str_remove_all('Conceptual\n\\|\n')
-         ) |>
-  na.omit()
-  
+  ) |>
+  na.omit() |>
+  dplyr::filter(framework != 'Review')
+
 
 df |>
-ggplot(aes(y=n,
-           axis1 = term,
-           axis2 = space_indef, 
-           axis3 = time_indef, 
-           axis4 = climate_indef, 
-           axis5 = biological_indef,
-           axis6 = framework,
-           axis7 = climate_driver)) +
-  geom_alluvium(aes(fill = term)) +
+  ggplot(aes(y=n,
+             axis1 = term,
+             axis2 = framework,
+             axis3 = climate_driver)) +
+  geom_alluvium(aes(fill = n_concepts |> as.factor())) +
   geom_stratum() +
   scale_x_discrete(limits = c('Term',
-                              "Space",
-                              "Time",
-                              "Climate",
-                              "Biological",
+                              'Framework',
                               'Climate\nDriver'),
                    expand = c(.2, .05)) +
   geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-  scale_fill_brewer(palette = 'Dark2') +
+  scale_fill_viridis_d(direction = -1, name = "Concepts in the Definition") +
   theme_minimal() +
   ggtitle("Definitions and key concepts") +
   theme(legend.position = 'bottom')
 
 
-ggsave('out/alluvial_definition_july.png', width = 16, height = 10, bg='white')
-  
+ggsave('out/alluvial_definition_july26.png', width = 16, height = 10, bg='white')
