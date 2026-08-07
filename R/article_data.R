@@ -11,6 +11,19 @@ d <-
 
 glimpse(d)
 
+d_def <- 
+  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+                    sheet = 'definition_recoding',
+                    skip = 1) |>
+  janitor::clean_names() |>
+  slice(2:999) |>
+  dplyr::select(-2)
+
+post_hoc_exclusions <-
+  d |>
+  dplyr::filter(!is.na(exclude)) |>
+  pull(article_id_1)
+
 # locations - could be a map (requires one person to get lat/longs for all 200+ studies)
 d$study_location |> unique()
 
@@ -18,9 +31,10 @@ d$study_location |> unique()
 
 d$is_the_specified_refugia_defined |> table()
 
-# habitats
+# habitats =====================================================================
 d |>
-  dplyr::filter(!str_detect(framework, 'Concept')) |>
+  dplyr::filter(!str_detect(framework, 'Concept'),
+                !article_id_1 %in% post_hoc_exclusions) |>
   dplyr::select(habitat) |>
   tidyr::separate(habitat, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
@@ -35,7 +49,27 @@ d |>
   geom_bar(stat = 'identity') +
   xlab("Count") +
   ggtitle("Habitat") +
-  
+  theme(axis.title.y = element_blank())
+
+
+# refugia term =================================================================
+d_def |>
+  dplyr::filter(!article_id %in% post_hoc_exclusions) |>
+  dplyr::select(what_is_the_single_main_concept_or_term) |>
+  tidyr::separate(what_is_the_single_main_concept_or_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  na.omit()|>
+  mutate(value = str_to_lower(value) |> str_replace_all("_", " ") |> str_to_title()) |>
+  group_by(value) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  # dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
+  ggplot(aes(x=n, y=fct_reorder(value,n))) +
+  geom_bar(stat= 'identity') +
+  ggtitle("Primary Refugia Concept") +
+  xlab('Number of Articles') +
+  theme(axis.title.y = element_blank())
+
 
 # species groups
 d |>
@@ -65,20 +99,6 @@ d |>
   geom_bar(stat= 'identity') +
   ggtitle("Framework")
 
-# refugia term
-d |>
-  dplyr::select(refugia_term) |>
-  tidyr::separate(refugia_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
-  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
-  na.omit()|>
-  mutate(value = str_to_lower(value)) |>
-  group_by(value) |>
-  summarise(n = n()) |>
-  ungroup() |>
-  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
-  ggplot(aes(x=n, y=fct_reorder(value,n))) +
-  geom_bar(stat= 'identity') +
-  ggtitle("Refugia Term (Some Studies cover multiple categories)")
 
 # reference for definition - this needs to be cleaned up (i.e. standardized) to make it easier to summarize
 d$refugia_defintion_reference |> table() |> sort()
