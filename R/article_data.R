@@ -20,6 +20,7 @@ d$is_the_specified_refugia_defined |> table()
 
 # habitats
 d |>
+  dplyr::filter(!str_detect(framework, 'Concept')) |>
   dplyr::select(habitat) |>
   tidyr::separate(habitat, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
@@ -32,7 +33,9 @@ d |>
   dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
   ggplot(aes(x=n, y=fct_reorder(value, n))) +
   geom_bar(stat = 'identity') +
-  ggtitle("Habitat")
+  xlab("Count") +
+  ggtitle("Habitat") +
+  
 
 # species groups
 d |>

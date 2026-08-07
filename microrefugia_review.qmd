@@ -31,7 +31,6 @@ update_theme(axis.text = element_text(size=10))
     c.  Adaptive capacity
 4.  How are microrefugia acutally quantified?
 
-
 ## Screening
 
 ```{r}
@@ -47,8 +46,7 @@ screening$included |>
   ggtitle("Screening: number of studies included")
 ```
 
-
-##
+## 
 
 ```{r}
 screening |>
@@ -73,18 +71,16 @@ screening |>
   ggtitle("Reason for Exclusion")
 ```
 
-## Mentioned but not investigated ~50 per term
+## Mentioned but not investigated \~50 per term
 
-1. Used as a buzzword?
-2. People are doing research on something related, and are happening upon the microrefugia literature while they're writing the paper, and having an a-ha moment after the fact
+1.  Used as a buzzword?
+2.  People are doing research on something related, and are happening upon the microrefugia literature while they're writing the paper, and having an a-ha moment after the fact
 
 ## Other 150 rejections
 
-1. not contemporary (75)
-2. not terrestrial
-3. short-term refuge
-
-
+1.  not contemporary (75)
+2.  not terrestrial
+3.  short-term refuge
 
 ## included by year
 
@@ -132,7 +128,7 @@ screening |>
 
 ## locations
 
-Could be a map figure for the paper if we get coordinates 
+Could be a map figure for the paper if we get coordinates
 
 Requires someone to spend a few hours getting coordinates for all studies
 
@@ -140,7 +136,6 @@ Requires someone to spend a few hours getting coordinates for all studies
 # locations - could be a map (requires one person to get lat/longs for all 300+ studies)
 d$study_location |> unique() |> length() |> paste('locations')
 ```
-
 
 ## habitats
 
@@ -197,7 +192,6 @@ fmk |>
   ggtitle("Framework (Some Studies cover multiple categories)")
 ```
 
-
 ## Outline
 
 1.  General context
@@ -206,10 +200,9 @@ fmk |>
         I.  Short-term vs millennial stability vs not at all defined?
     b.  How are microrefugia defined: Spatially
         I.  Size or structure defined?
-        II.  Minimum size for viable populations Microrefugia networks - metapopulation dynamics
+        II. Minimum size for viable populations Microrefugia networks - metapopulation dynamics
 
-
-##
+## 
 
 ![](out/alluvial_definition.png)
 
@@ -229,11 +222,9 @@ d$is_the_specified_refugia_defined |>
 
 ```
 
-
 ## Definition
 
 ![Word Cloud!!](out/wordcloud_clipped.png)
-
 
 ## refugia term
 
@@ -301,9 +292,6 @@ d$refugia_defintion_reference |>
     b.  Sensitivity
     c.  Adaptive capacity
 
-
-
-
 ## position in relation to main range
 
 ```{r}
@@ -317,9 +305,6 @@ d |>
   geom_bar(stat = 'identity') +
   ggtitle('Position in relation to main range')
 ```
-
-
-
 
 ## climate driver
 
@@ -341,8 +326,6 @@ d |>
   geom_bar(stat= 'identity') +
   ggtitle("Climate Driver (Some Studies cover multiple categories)")
 ```
-
-
 
 ## exposure_considered
 
@@ -471,7 +454,6 @@ d |>
 
 
 ```
-
 
 ## Outline
 
