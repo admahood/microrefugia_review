@@ -4,9 +4,12 @@ library(tidyverse)
 library(janitor)
 
 screening <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', skip = 1) |>
-  janitor::clean_names()
+  janitor::clean_names() |>
+  dplyr::filter(!is.na(reader)) |>
+  dplyr::filter(str_sub(reader, 1,3) != "Efr") 
 
 glimpse(screening)
+
 
 # included versus not
 screening$included |> table()
