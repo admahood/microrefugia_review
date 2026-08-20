@@ -18,7 +18,8 @@ art_year <- readxl::read_xlsx('data/Microrefugia review studies.xlsx',
                               sheet = 1,
                               skip = 1)  |>
   janitor::clean_names() |>
-  dplyr::select(article_id, year)
+  dplyr::select(article_id, year) |>
+  unique()
 
 # definition recoding
 d_def <- 
@@ -28,7 +29,7 @@ d_def <-
   janitor::clean_names() |>
   slice(2:999) |>
   dplyr::select(1, main_concept = 3, is_term_defined_new = 4, 
-                definition_new = 5, 6:9, qualitative_quantitative = 10)
+                definition_new = 5, 6:9, method_qualitative_quantitative = 10)
 
 # d_resclim
 d_clim <- 
@@ -55,9 +56,9 @@ d_species <-
   dplyr::select(-species_group)
 
 
-d_merged <- cbind(d, 
-      d_def |> dplyr::select(-article_id), 
-      d_clim |> dplyr::select(-article_id), 
+d_merged <- cbind(d,
+      d_def |> dplyr::select(-article_id),
+      d_clim |> dplyr::select(-article_id),
       d_species |> dplyr::select(-article_id, -x6)) |>
   dplyr::slice(115:412) |>
   dplyr::filter(is.na(exclude)) |>
