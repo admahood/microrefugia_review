@@ -3,44 +3,47 @@ library(tidyverse)
 
 # data input ===================================================================
 # main sheet
-d <- 
-  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
-                    sheet = 1,
-                    skip = 1) |>
-  janitor::clean_names() |>
-  slice(2:999) |>
-  dplyr::select(-2) |>
-  dplyr::rename(article_id = article_id_1)
+# d <- 
+#   readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+#                     sheet = 1,
+#                     skip = 1) |>
+#   janitor::clean_names() |>
+#   slice(2:999) |>
+#   dplyr::select(-2) |>
+#   dplyr::rename(article_id = article_id)
+# 
+# # article year
+# art_year <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', 
+#                               sheet = 1,
+#                               skip = 1)  |>
+#   janitor::clean_names() |>
+#   dplyr::select(article_id, year)
+# 
+# # definition recoding
+# d_def <- 
+#   readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+#                     sheet = 'definition_recoding',
+#                     skip = 1) |>
+#   janitor::clean_names() |>
+#   slice(2:999)
+# 
+# # d_resclim
+# d_clim <- 
+#   readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+#                     sheet = 'resolution_modelling+climate',
+#                     skip = 1) |>
+#   janitor::clean_names() |>
+#   slice(2:999) |>
+#   dplyr::select(article_id, climate_data_resolution_new, spatial_resolution_modelling_rs_new)
+# 
+# # post-hoc exclusions
+# post_hoc_exclusions <-
+#   d |>
+#   dplyr::filter(!is.na(exclude)) |>
+#   pull(article_id)
 
-# article year
-art_year <- readxl::read_xlsx('data/Microrefugia review studies.xlsx', 
-                              sheet = 1,
-                              skip = 1)  |>
-  janitor::clean_names() |>
-  dplyr::select(article_id, year)
+d <- read_csv('data/cleaned_and_merged_data.csv')
 
-# definition recoding
-d_def <- 
-  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
-                    sheet = 'definition_recoding',
-                    skip = 1) |>
-  janitor::clean_names() |>
-  slice(2:999)
-
-# d_resclim
-d_clim <- 
-  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
-                    sheet = 'resolution_modelling+climate',
-                    skip = 1) |>
-  janitor::clean_names() |>
-  slice(2:999) |>
-  dplyr::select(article_id, climate_data_resolution_new, spatial_resolution_modelling_rs_new)
-
-# post-hoc exclusions
-post_hoc_exclusions <-
-  d |>
-  dplyr::filter(!is.na(exclude)) |>
-  pull(article_id_1)
 
 # locations - could be a map (requires one person to get lat/longs for all 200+ studies)
 d$study_location |> unique()

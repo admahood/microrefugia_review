@@ -29,7 +29,8 @@ d_def <-
   janitor::clean_names() |>
   slice(2:999) |>
   dplyr::select(1, main_concept = 3, is_term_defined_new = 4, 
-                definition_new = 5, 6:9, method_qualitative_quantitative = 10)
+                definition_new = 5, 6:9, method_qualitative_quantitative = 10) |>
+  dplyr::mutate(main_concept = str_replace_all(main_concept, ' ', '_'))
 
 # d_resclim
 d_clim <- 
