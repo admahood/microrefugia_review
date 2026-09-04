@@ -1,5 +1,5 @@
 # venn diagram
-.libPaths(c("/users/mahoodal/ondemand/r_pkgs", .libPaths()))
+.libPaths(c("/scratch/project_2016646", .libPaths()))
 libpath <- .libPaths()[1]
 
 remotes::install_github('gaospecial/ggVennDiagram')
@@ -9,48 +9,53 @@ library(ggVennDiagram)
 process_region_data(Venn(y))library(janitor)
 
 
-d <- 
-  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
-                    sheet = 1,
-                    skip = 1) |>
-  janitor::clean_names() |>
-  slice(2:999) |>
-  dplyr::select(-2)
+d <- readr::read_csv('data/cleaned_and_merged_data.csv')
 
-drd <- 
-  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
-                    sheet = 'definition_recoding',
-                    skip = 1) |>
-  janitor::clean_names() |>
-  slice(2:999) |>
-  dplyr::select(-2) |>
-  unique()
+n_mr <- d |> filter(main_concept == 'microrefugia') |>
+  pull(article_id) |>
+  unique() |>
+  length()
+n_cr <- d |> filter(main_concept == 'climate_refugia') |>
+  pull(article_id) |>
+  unique() |>
+  length()
 
-framework <-
-  d |>
-  dplyr::select(article_id_1, value = framework) |>
-  tidyr::separate(value, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
-  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
-  na.omit()|>
-  dplyr::select(-name, article_id_1, framework = value) |>
-  unique()
-
-x <- list(
-  space = drd |>
-    dplyr::filter(space_indef == 'yes') |>
+xm <- list(
+  space = d |>
+    dplyr::filter(space_indef == 'yes', main_concept == 'microrefugia') |>
     dplyr::pull(article_id),
-  time =drd |>
-    dplyr::filter(time_indef == 'yes') |>
+  time = d |>
+    dplyr::filter(time_indef == 'yes', main_concept == 'microrefugia') |>
     dplyr::pull(article_id),
-  climate= drd |>
-    dplyr::filter(climate_indef == 'yes') |>
+  climate= d |>
+    dplyr::filter(climate_indef == 'yes', main_concept == 'microrefugia') |>
     dplyr::pull(article_id),
-  biological =drd |>
-    dplyr::filter(biological_indef == "yes") |>
+  biological = d |>
+    dplyr::filter(biological_indef == "yes", main_concept == 'microrefugia') |>
     dplyr::pull(article_id)
 )
 
-ggVennDiagram(x, label_color = 'white', label_font = 'bold') +
-  scale_fill_gradient(low="grey90",high = "firebrick")
+xc <- list(
+  space = d |>
+    dplyr::filter(space_indef == 'yes', main_concept == 'climate_refugia') |>
+    dplyr::pull(article_id),
+  time = d |>
+    dplyr::filter(time_indef == 'yes', main_concept == 'climate_refugia') |>
+    dplyr::pull(article_id),
+  climate= d |>
+    dplyr::filter(climate_indef == 'yes', main_concept == 'climate_refugia') |>
+    dplyr::pull(article_id),
+  biological = d |>
+    dplyr::filter(biological_indef == "yes", main_concept == 'climate_refugia') |>
+    dplyr::pull(article_id)
+)
 
-ggsave('out/definition_venn.png', width =8, height = 6, bg = 'white')
+ggpubr::ggarrange(
+  ggVennDiagram(xc, label_color = 'black', label_font = 'bold') +
+    scale_fill_gradient(low="grey97",high = "skyblue", guide = 'none') +
+    ggtitle(paste0("Climate Refugia (n = ", n_cr, ')')),
+  ggVennDiagram(xm, label_color = 'black', label_font = 'bold') +
+    scale_fill_gradient(low="grey97",high = "springgreen", guide = 'none') +
+    ggtitle(paste0("Microrefugia (n = ", n_mr, ')'))
+)
+ggsave('out/definition_venn.png', width =14, height = 6, bg = 'white')

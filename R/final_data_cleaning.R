@@ -71,7 +71,7 @@ readr::write_csv(d_merged, "data/cleaned_and_merged_data.csv")
 
 
 # post-hoc exclusions
-post_hoc_exclusions <-
-  d_merged |>
-  dplyr::filter(!is.na(exclude)) |>
-  pull(article_id)
+# post_hoc_exclusions <-
+#   d_merged |>
+#   dplyr::filter(!is.na(exclude)) |>
+#   pull(article_id)

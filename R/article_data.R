@@ -52,26 +52,57 @@ d$study_location |> unique()
 
 d$is_the_specified_refugia_defined |> table()
 
+
+
 # habitats =====================================================================
 d |>
-  dplyr::filter(!str_detect(framework, 'Concept'),
-                !article_id %in% post_hoc_exclusions) |>
-  dplyr::select(habitat) |>
+  dplyr::filter(!str_detect(framework, 'Concept')) |>
+  dplyr::select(main_concept, habitat) |>
   tidyr::separate(habitat, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
-  tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
+  tidyr::pivot_longer(cols = c('w','x', 'y', 'z', 'a', 'b')) |> 
   na.omit() |>
   dplyr::mutate(value = str_remove_all(value, "[^A-Za-z0-9]")) |>
+  filter(value != 'river') |>
+  dplyr::mutate(value = case_when(value %in% c('stream', 'wetlandsandlakes', 'lake',
+                                               'floodplains', 'riparian', 'lakeshorelines') ~
+                                    'Rivers, Streams, Wetlands, Floodplains & Riparian',
+                                  value %in% c('grassland', 'savannah', 'grassyslopes', 'shrubland') ~
+                                    'Grasslands, Savannas & Shrublands',
+                                  value %in% c('desert', 'semiaridregions', 'sagebrushsteppe') ~
+                                    'Drylands',
+                                  value %in% c('mountainrange', 'alpinevegetation',
+                                               'Alpine', 'alpineecosystems') ~
+                                    'Alpine, Montane',
+                                  value %in% c('rockoutcrops', 'Rupicolous') ~
+                                    'Rock Outcrops etc',
+                                  str_detect(value, 'coastal') ~ 'Coastal Ecosystems',
+                                  value %in% c('forest', 'taiga', 'rainforest',
+                                               'woodland', 'subalpinedryforest',
+                                               'mountainforests') ~ 'Forests',
+                                  str_detect(value, 'karst') ~ "Karst (Sinkholes)",
+                                  value %in% c('spansmultiplehabitats', 'Groundwaterdependentecosystems') ~
+                                    'Multiple Habitats',
+                                  TRUE ~ str_to_title(value)),
+                main_concept = str_replace_all(main_concept, "_", ' ') |>
+                  str_to_title()) |>
   group_by(value) |>
+  mutate(total_by_habitat = n()) |>
+  ungroup() |>
+  group_by(main_concept, value,total_by_habitat) |>
   summarise(n = n()) |>
   ungroup() |>
-  arrange(desc(n)) |>
-  dplyr::mutate(value = ifelse(n == 1, 'other', value)) |>
-  ggplot(aes(x=n, y=fct_reorder(value, n))) +
-  geom_bar(stat = 'identity') +
+  # arrange(desc(total_by_habitat)) |>
+  ggplot(aes(x=n, y=fct_reorder(value, total_by_habitat), fill = main_concept)) +
+  geom_bar(stat = 'identity', color = 'black') +
   xlab("Count") +
-  ggtitle("Habitat") +
-  theme(axis.title.y = element_blank())
-
+  ggtitle("Habitat (if given)") +
+  scale_fill_brewer(palette = "Dark2", name = "Main\nRefugia\nConcept")+
+  theme_bw() +
+  theme(axis.title.y = element_blank(),
+        legend.background = element_rect(color = 'black'),
+        legend.position = c(0.85,0.15),
+        legend.justfication = c(1,0))
+ggsave('out/habitat_figure.png', width = 10, height = 6, bg = 'white')
 
 # refugia term =================================================================
 d_def |>
@@ -99,11 +130,9 @@ dummy <- expand_grid(year = 2008:2026,
                       "Thermal Refugia"),
             n=0)
 
-d_def |>
-  dplyr::filter(!article_id %in% post_hoc_exclusions) |>
-  dplyr::left_join(art_year) |>
-  dplyr::select(what_is_the_single_main_concept_or_term, year) |>
-  tidyr::separate(what_is_the_single_main_concept_or_term, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
+d |>
+  dplyr::select(main_concept, year) |>
+  tidyr::separate(main_concept, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit()|>
   mutate(value = str_to_lower(value) |> str_replace_all("_", " ") |> str_to_title()) |>
@@ -116,20 +145,65 @@ d_def |>
   ggtitle("Primary Refugia Concept") +
   xlab('Year') +
   ylab('Number of Articles') +
+  theme_bw() +
   theme(legend.position = c(0.01,0.99),
         legend.justification = c(0,1),
         legend.title = element_blank())
 
+
+# definition reference =========================================================
+d |>
+  dplyr::select(main_concept, refugia_defintion_reference) |>
+  tidyr::separate(refugia_defintion_reference, into=letters, sep = '\\;') |>
+  tidyr::pivot_longer(cols = letters) |>
+  na.omit() |> 
+  mutate(value = str_remove_all(value, "^ ") |> 
+           str_remove_all('\\(') |>
+           str_remove_all('\\)') |>
+           str_remove_all(',') |>
+           str_remove_all('\n') |>
+           str_remove_all('\\.') |>
+           str_remove_all('et al') |>
+           str_replace_all('  ', ' ') |>
+           str_replace_all('  ', ' ') |>
+           str_replace_all('  ', ' ') |>
+           str_replace_all('  ', ' ') |>
+           str_replace_all('and', '&') |>
+           str_replace_all('\\+', '&') |>
+           str_remove_all("^ ") |>
+           str_replace_all(' & al ', ' ')) |>
+  dplyr::select(-name) |>
+  dplyr::group_by(value) |>
+  dplyr::mutate(total_n = n()) |>
+  ungroup() |>
+  dplyr::mutate(value = ifelse(total_n == 1, 'Other', value))|>
+  dplyr::group_by(value) |>
+  dplyr::mutate(total_n = n()) |>
+  ungroup() |>
+  dplyr::group_by(main_concept, total_n, value) |>
+  dplyr::summarise(n=n()) |>
+  ungroup() |>
+  dplyr::mutate(total_n = ifelse(value == 'Other', 1, total_n)) |>
+  ggplot(aes(x=n, y=fct_reorder(value, total_n), fill = main_concept)) +
+  geom_bar(stat = 'identity', color = 'black') +
+  xlab("Count") +
+  ggtitle("References Used") +
+  scale_fill_brewer(palette = "Dark2", name = "Main\nRefugia\nConcept")+
+  theme_bw() +
+  theme(axis.title.y = element_blank(),
+        legend.background = element_rect(color = 'black'),
+        legend.position = c(0.85,0.15),
+        legend.justfication = c(1,0))
+ggsave(filename = 'out/references_by_concept.png', width =10, height = 7, bg = 'white')
+
 # framework + resolution =======================================================
 d |>
-  dplyr::filter(!article_id %in% post_hoc_exclusions, 
-                !str_detect(framework, 'Concept'), !str_detect(framework, "Exper"))|>
-  dplyr::select(article_id, framework) |>
+  dplyr::filter(!str_detect(framework, 'Concept'), !str_detect(framework, "Exper"))|>
+  dplyr::select(article_id, framework,spatial_resolution_modelling_rs_new) |>
   tidyr::separate(framework, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer( c('w','x', 'y', 'z', 'a', 'b'))|> 
   na.omit() |>
   unique() |>
-  dplyr::left_join(d_clim) |>
   # group_by(value, spatial_resolution_modelling_rs_new) |>
   # mutate(n = n()) |>
   # ungroup() |>
@@ -324,3 +398,4 @@ d |>
   ggplot(aes(x=n, y=fct_reorder(value,n))) +
   geom_bar(stat= 'identity') +
   ggtitle("species_response_to_changing_climate")
+
