@@ -42,7 +42,7 @@ library(tidyverse)
 #   dplyr::filter(!is.na(exclude)) |>
 #   pull(article_id)
 
-d <- read_csv('data/cleaned_and_merged_data.csv')
+d <- read_csv('data/cleaned_and_merged_data___preliminary.csv')
 
 
 # locations - could be a map (requires one person to get lat/longs for all 200+ studies)
@@ -55,32 +55,44 @@ d$is_the_specified_refugia_defined |> table()
 
 
 # habitats =====================================================================
-d |>
-  dplyr::filter(!str_detect(framework, 'Concept')) |>
+d_habitat <- d |>
+  dplyr::filter(!str_detect(framework, 'Concept'), main_concept != 'not_applicable') |>
   dplyr::select(main_concept, habitat) |>
   tidyr::separate(habitat, into = c('w','x', 'y', 'z', 'a', 'b'), sep = '\\, ') |>
   tidyr::pivot_longer(cols = c('w','x', 'y', 'z', 'a', 'b')) |> 
   na.omit() |>
   dplyr::mutate(value = str_remove_all(value, "[^A-Za-z0-9]")) |>
   filter(value != 'river') |>
-  dplyr::mutate(value = case_when(value %in% c('stream', 'wetlandsandlakes', 'lake',
-                                               'floodplains', 'riparian', 'lakeshorelines') ~
-                                    'Rivers, Streams, Wetlands, Floodplains & Riparian',
-                                  value %in% c('grassland', 'savannah', 'grassyslopes', 'shrubland') ~
+  dplyr::mutate(value = case_when(value %in% c('stream', 'wetlandsandlakes', 
+                                               'lake', 'swamp', 'saltlakes',
+                                               'floodplains', 'riparian',
+                                               'lakeshorelines') ~
+                                    'Rivers, Lakes, Wetlands, Floodplains & Riparian',
+                                  value %in% c('grassland', 'savannah', 'pasture',
+                                               'agrosteppe', 'heath',
+                                               'grassyslopes', 'shrubland') ~
                                     'Grasslands, Savannas & Shrublands',
-                                  value %in% c('desert', 'semiaridregions', 'sagebrushsteppe') ~
+                                  value %in% c('desert', 'semiaridregions', 
+                                               'sagebrushsteppe', "aridregions") ~
                                     'Drylands',
                                   value %in% c('mountainrange', 'alpinevegetation',
-                                               'Alpine', 'alpineecosystems') ~
+                                               'alpineboulderfield', 'tundra', 
+                                               'tepui',
+                                               'rockglacier', 'montanemeadows',
+                                               'alpine', 'Alpine', 'alpineecosystems') ~
                                     'Alpine, Montane',
                                   value %in% c('rockoutcrops', 'Rupicolous') ~
                                     'Rock Outcrops etc',
-                                  str_detect(value, 'coastal') ~ 'Coastal Ecosystems',
-                                  value %in% c('forest', 'taiga', 'rainforest',
+                                  value %in% c('coastal', 'tidal', 'coastalestuarinesystem') ~
+                                    'Coastal Ecosystems',
+                                  value %in% c('forest', 'taiga', 'rainforest', 
+                                               'mediterraneanwoodland', 'coastalforest',
+                                               'subtropicalforest', 'monodominantstand',
                                                'woodland', 'subalpinedryforest',
                                                'mountainforests') ~ 'Forests',
                                   str_detect(value, 'karst') ~ "Karst (Sinkholes)",
-                                  value %in% c('spansmultiplehabitats', 'Groundwaterdependentecosystems') ~
+                                  value %in% c('spansmultiplehabitats', 'valleys',
+                                               'Groundwaterdependentecosystems') ~
                                     'Multiple Habitats',
                                   TRUE ~ str_to_title(value)),
                 main_concept = str_replace_all(main_concept, "_", ' ') |>
@@ -90,8 +102,10 @@ d |>
   ungroup() |>
   group_by(main_concept, value,total_by_habitat) |>
   summarise(n = n()) |>
-  ungroup() |>
-  # arrange(desc(total_by_habitat)) |>
+  ungroup() 
+
+# figure 
+d_habitat |>
   ggplot(aes(x=n, y=fct_reorder(value, total_by_habitat), fill = main_concept)) +
   geom_bar(stat = 'identity', color = 'black') +
   xlab("Count") +
@@ -102,7 +116,16 @@ d |>
         legend.background = element_rect(color = 'black'),
         legend.position = c(0.85,0.15),
         legend.justfication = c(1,0))
-ggsave('out/habitat_figure.png', width = 10, height = 6, bg = 'white')
+ggsave('out/habitat_figure_prelim.png', width = 10, height = 6, bg = 'white')
+
+# table 
+d_habitat |>
+  dplyr::filter(main_concept != 'Thermal Refugia') |>
+  tidyr::pivot_wider(names_from = main_concept, values_from = n, values_fill = 0) |>
+  janitor::clean_names() |>
+  dplyr::mutate(climate_refugia = paste0(climate_refugia, ' (', round(climate_refugia / sum(climate_refugia) * 100), '%)'),
+                microrefugia = paste0(microrefugia, ' (', round(microrefugia / sum(microrefugia) * 100), '%)')) |>
+  readr::write_csv('out/habitat_table_prelim.csv')
 
 # refugia term =================================================================
 d_def |>
@@ -154,6 +177,7 @@ d |>
 # definition reference =========================================================
 d |>
   dplyr::select(main_concept, refugia_defintion_reference) |>
+  dplyr::filter(main_concept != 'not_applicable') |>
   tidyr::separate(refugia_defintion_reference, into=letters, sep = '\\;') |>
   tidyr::pivot_longer(cols = letters) |>
   na.omit() |> 
@@ -192,9 +216,9 @@ d |>
   theme_bw() +
   theme(axis.title.y = element_blank(),
         legend.background = element_rect(color = 'black'),
-        legend.position = c(0.85,0.15),
+        legend.position = c(0.85,0.25),
         legend.justfication = c(1,0))
-ggsave(filename = 'out/references_by_concept.png', width =10, height = 7, bg = 'white')
+ggsave(filename = 'out/references_by_concept_prelim.png', width =10, height = 7, bg = 'white')
 
 # framework + resolution =======================================================
 d |>

@@ -11,7 +11,8 @@ d_map <- readxl::read_xlsx('data/Microrefugia literature review table - data col
   janitor::clean_names() |>
   right_join(d_clean |> dplyr::select(article_id, framework, main_concept)) |>
   tidyr::separate(latlong, into = c('lat', 'lon'), sep = '\\, ') |>
-  dplyr::filter(!is.na(lon), !str_detect(framework, 'Conceptual'), main_concept =='climate_refugia') |> 
+  dplyr::filter(!is.na(lon), #!str_detect(framework, 'Conceptual'), 
+                main_concept =='climate_refugia') |> 
   st_as_sf(crs = 4326, coords = c('lon', 'lat')) |>
   dplyr::mutate(habitat = case_when(str_detect(habitat, '\\,') ~ 'spans multiple habitats', 
                                     str_detect(habitat, 'forest') ~ 'forest',

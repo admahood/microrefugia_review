@@ -32,6 +32,16 @@ d_def <-
                 definition_new = 5, 6:9, method_qualitative_quantitative = 10) |>
   dplyr::mutate(main_concept = str_replace_all(main_concept, ' ', '_'))
 
+d_def_strict <-
+  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+                    sheet = 'definition_2',
+                    skip = 1)|>
+  janitor::clean_names() |>
+  slice(2:999) |>
+  dplyr::filter(from_definition_recoding != 'WOS:000388868700010') |>
+  dplyr::rename(article_id = from_definition_recoding)
+glimpse(d_def_strict)
+
 # d_resclim
 d_clim <- 
   readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
@@ -56,18 +66,33 @@ d_species <-
                   ifelse(is.na(species_group_new_multiple), species_group_new, species_group_new_multiple)) |>
   dplyr::select(-species_group)
 
+d_map <- 
+  readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
+                    sheet = 'map_habitat',
+                    skip = 1) |>
+  janitor::clean_names() |>
+  slice(2:999) |>
+  dplyr::select(article_id, continent) |>
+  unique()
+
+
+
 
 d_merged <- cbind(d,
       d_def |> dplyr::select(-article_id),
       d_clim |> dplyr::select(-article_id),
       d_species |> dplyr::select(-article_id, -x6)) |>
-  dplyr::slice(115:412) |>
+  # dplyr::slice(115:412) |>
   dplyr::filter(is.na(exclude)) |>
-  left_join(art_year)
+  left_join(art_year) |> 
+  left_join(d_map)
 
 glimpse(d_merged)
 
-readr::write_csv(d_merged, "data/cleaned_and_merged_data.csv")
+readr::write_csv(d_merged, "data/cleaned_and_merged_data___preliminary.csv")
+
+readr::write_csv(d_def_strict, 'data/definition_strict.csv')
+
 
 
 # post-hoc exclusions
