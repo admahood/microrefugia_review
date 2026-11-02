@@ -9,7 +9,9 @@ library(ggVennDiagram)
 library(janitor)
 
 
+# using non-strict coding ======================================================
 d <- readr::read_csv('data/cleaned_and_merged_data___preliminary.csv')
+
 
 n_mr <- d |> filter(main_concept == 'microrefugia', 
                     is_the_specified_refugia_defined == 'no') |>
@@ -59,6 +61,40 @@ xc <- list(
 p_venn <- ggVennDiagram(xm, label_color = 'black', label_font = 'bold') +
   scale_fill_gradient(low="grey97",high = "springgreen", guide = 'none') +
   ggtitle(paste0("Microrefugia (n = ", t_mr, ', ',n_mr, ' Undefined)'))
+
+# strict coding ================================================================
+
+dd <- readr::read_csv('data/definition_strict.csv')
+
+undefined <- dd |> filter(is_the_specified_refugia_defined == 'no') |>
+  pull(article_id) |>
+  unique() |>
+  length()
+defined <- dd |> filter(is_the_specified_refugia_defined == 'yes') |>
+  pull(article_id) |>
+  unique() |>
+  length()
+
+
+
+xms <- list(
+  space = dd |>
+    dplyr::filter(space_micro %in% c('yes', 'partial')) |>
+    dplyr::pull(article_id),
+  time = dd |>
+    dplyr::filter(time_micro %in% c('yes', 'partial')) |>
+    dplyr::pull(article_id),
+  climate= dd |>
+    dplyr::filter(climate_micro %in% c('buffered', 'decoupled', 'climate_only')) |>
+    dplyr::pull(article_id),
+  biology = dd |>
+    dplyr::filter(biology_micro %in% c('yes', 'partial')) |>
+    dplyr::pull(article_id)
+)
+
+p_venn_s <- ggVennDiagram(xms, label_color = 'black', label_font = 'bold') +
+  scale_fill_gradient(low="grey97",high = "springgreen", guide = 'none') +
+  ggtitle(paste0("Microrefugia (n = ", defined, ', ',undefined, ' Undefined)'))
 
 # ggpubr::ggarrange(
 #   ggVennDiagram(xc, label_color = 'black', label_font = 'bold') +

@@ -34,11 +34,11 @@ d_map <- readxl::read_xlsx('data/Microrefugia literature review table - data col
   ) |> str_to_title()) 
 
 
-world <- geodata::world() |> st_as_sf()
+world <- geodata::world() |> st_as_sf() 
 
 # map ==========================================================================
 p_map <- ggplot(world) +
-  geom_sf(fill = 'grey97', linewidth = 0.1, color = 'grey60') +
+  geom_sf(fill = 'grey90', linewidth = 0, color = 'grey90') +
   geom_sf(data = d_map, aes(color = habitat), alpha = 0.75) +
   coord_sf(crs = 54030, ylim=c(-6000000, 8500000)) +
   ggtitle('Microrefugia Studies with Specified Locations', 'Global or continental studies not shown') +
@@ -117,10 +117,10 @@ p_habitat <- d_clean |>
   ungroup() |>
   ggplot(aes(x=n, y=fct_reorder(value, total_by_habitat))) +
   geom_bar(stat = 'identity', color = 'black') +
-  xlab("Count") +
+  xlab("N Studies") +
   ggtitle("Habitat (if given)") +
   scale_fill_brewer(palette = "Dark2", name = "Main\nRefugia\nConcept")+
-  theme_bw() +
+  theme_classic() +
   theme(axis.title.y = element_blank(),
         legend.background = element_rect(),
         legend.position = c(0.65,0.25),
@@ -162,10 +162,10 @@ p_def <- d_clean |>
   dplyr::mutate(total_n = ifelse(value == 'Other', 1, total_n)) |>
   ggplot(aes(x=n, y=fct_reorder(value, total_n), fill = main_concept)) +
   geom_bar(stat = 'identity', color = 'black') +
-  xlab("Count") +
+  xlab("N Studies") +
   ggtitle("References Used") +
   scale_fill_brewer(palette = "Dark2", name = "Main\nRefugia\nConcept")+
-  theme_bw() +
+  theme_classic() +
   theme(axis.title.y = element_blank(),
         legend.background = element_rect(fill = NA),
         legend.position = c(0.8, 0.2),
@@ -176,7 +176,32 @@ source('R/b_venn.R')
 
 # all together =================================================================
 
-bottom <- ggpubr::ggarrange(p_habitat, p_venn, p_def, nrow = 1, labels = c('c', 'd', 'e'))
+bottom <- ggpubr::ggarrange(p_habitat, p_venn_s, p_def, nrow = 1, labels = c('c', 'd', 'e'))
 top <- ggpubr::ggarrange(p_map, p_cont, nrow = 1, widths = c(4,1.5), labels = 'auto')
 ggpubr::ggarrange(top, bottom, nrow = 2, ncol = 1)
 ggsave('out/mutipanel_figure_def_map_habitat.png', bg='white', width = 15, height = 10)
+
+
+# extra definition stuff =======================================================
+
+d_def_strict |>
+  dplyr::select(elements_met_strict_0_4, elements_met_inclpartial_0_4, full_microrefugium_definition) |>
+  tidyr::pivot_longer(cols = c(elements_met_strict_0_4, 
+                               elements_met_inclpartial_0_4, 
+                               full_microrefugium_definition)) |>
+  dplyr::mutate(value = str_remove_all(value, '.0'),
+                name = str_remove_all(name, '_0_4') |>
+                  str_replace_all('_', " ") |>
+                  str_replace_all('inclpartial', '(Including Partial)') |>
+                  str_to_title()) |>
+  ggplot(aes(x=value)) +
+  geom_bar(stat = 'count') +
+  facet_wrap(~name, scales = 'free') +
+  ggtitle('') +
+  theme_bw() +
+  theme(axis.title.x = element_blank())
+
+ggsave('out/strict_definition_bars.png', width = 8, height = 4, bg = 'white')
+
+
+

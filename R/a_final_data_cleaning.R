@@ -35,11 +35,10 @@ d_def <-
 d_def_strict <-
   readxl::read_xlsx('data/Microrefugia literature review table - data collection.xlsx', 
                     sheet = 'definition_2',
-                    skip = 1)|>
+                    skip = 0)|>
   janitor::clean_names() |>
   slice(2:999) |>
-  dplyr::filter(from_definition_recoding != 'WOS:000388868700010') |>
-  dplyr::rename(article_id = from_definition_recoding)
+  dplyr::filter(article_id != 'WOS:000388868700010')
 glimpse(d_def_strict)
 
 # d_resclim
